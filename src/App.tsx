@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Car } from 'lucide-react';
 import BookingPage from './pages/BookingPage';
 import AdminPage from './pages/AdminPage';
+import DriverPage from './pages/DriverPage';
 
 function App() {
   return (
@@ -17,6 +18,9 @@ function App() {
               <Link to="/" className="text-gray-300 hover:text-amber-400 font-medium transition-colors">
                 Book a Cab
               </Link>
+              <Link to="/driver" className="text-gray-300 hover:text-amber-400 font-medium transition-colors">
+                Driver Portal
+              </Link>
               <Link to="/admin" className="text-gray-300 hover:text-amber-400 font-medium transition-colors">
                 Admin
               </Link>
@@ -26,6 +30,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<BookingPage />} />
+          <Route path="/driver" element={<DriverPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </div>
