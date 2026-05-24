@@ -227,12 +227,19 @@ export default function AdminPage() {
                           <td className="px-6 py-4 text-center">
                             <span
                               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold ${
-                                booking.status === 'assigned'
+                                booking.status === 'completed'
+                                  ? 'bg-gray-100 text-gray-800'
+                                : booking.status === 'assigned'
                                   ? 'bg-green-100 text-green-800'
                                   : 'bg-amber-100 text-amber-800'
                               }`}
                             >
-                              {booking.status === 'assigned' ? (
+                              {booking.status === 'completed' ? (
+                                <>
+                                  <CheckCircle className="w-4 h-4" />
+                                  Completed
+                                </>
+                              ) : booking.status === 'assigned' ? (
                                 <>
                                   <CheckCircle className="w-4 h-4" />
                                   Assigned
@@ -246,7 +253,9 @@ export default function AdminPage() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            {booking.driver_id ? (
+                            {booking.status === 'completed' ? (
+                              <span className="text-gray-400 italic">Completed</span>
+                            ) : booking.driver_id ? (
                               <div className="flex items-center justify-center gap-2">
                                 <User className="w-4 h-4 text-gray-600" />
                                 <span className="font-semibold">{formatDriverId(booking.driver_id)}</span>

@@ -145,7 +145,7 @@ export default function BookingPage() {
 
       // Get street number and name from first part
       const streetMatch = pickupParts[0].match(/^(\d+)\s+(.+)$/);
-      const streetNumber = streetMatch ? streetMatch[1] : 'N/A';
+      const streetNumber = streetMatch ? streetMatch[1] : '';
       const streetName = streetMatch ? streetMatch[2] : pickupParts[0];
 
       // Get suburb (usually second or third part)

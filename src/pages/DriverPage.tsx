@@ -93,10 +93,11 @@ export default function DriverPage() {
     if (!selectedDriver) return;
     setLoading(true);
     try {
-      // Fetch all bookings with coordinates
+      // Fetch all active bookings with coordinates (excluding completed)
       const { data: allBookings, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
+        .neq('status', 'completed')
         .not('pickup_latitude', 'is', null)
         .order('pickup_date', { ascending: true });
 
@@ -468,11 +469,11 @@ export default function DriverPage() {
                         <Marker position={[job.pickup_lat, job.pickup_lng]} icon={pickupIcon}>
                           <Popup>
                             <div className="p-2">
-                              <p className={`font-bold ${isMine ? 'text-amber-600' : 'text-green-700'}`}>
-                                {isMine ? 'YOUR JOB' : 'PICKUP'}
+                              <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(job.booking_id)}</p>
+                              <p className={`font-bold text-sm ${isMine ? 'text-amber-600' : 'text-green-700'}`}>
+                                {isMine ? 'YOUR JOB - PICKUP' : 'PICKUP'}
                               </p>
-                              <p className="font-semibold">{formatBookingId(job.booking_id)}</p>
-                              <p className="text-sm">{job.customer_name}</p>
+                              <p className="text-sm font-semibold">{job.customer_name}</p>
                               <p className="text-sm text-gray-600">{job.pickup_suburb}</p>
                               <p className="text-xs text-gray-500 mt-1">{formatTime(job.pickup_time)} {formatDate(job.pickup_date)}</p>
                               {job.status === 'unassigned' && (
@@ -491,8 +492,8 @@ export default function DriverPage() {
                         <Marker position={[job.dest_lat, job.dest_lng]} icon={destinationIcon}>
                           <Popup>
                             <div className="p-2">
-                              <p className="font-bold text-red-700">DESTINATION</p>
-                              <p className="font-semibold">{formatBookingId(job.booking_id)}</p>
+                              <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(job.booking_id)}</p>
+                              <p className="font-bold text-red-700 text-sm">DESTINATION</p>
                               <p className="text-sm text-gray-600">{job.destination_suburb}</p>
                             </div>
                           </Popup>

@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { supabase, type Booking } from '../lib/supabase';
-import { MapPin, Navigation, Loader, AlertCircle, RefreshCw } from 'lucide-react';
+import { MapPin, Navigation, Loader, RefreshCw } from 'lucide-react';
 
 // Fix default marker icon issue with React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -46,20 +46,11 @@ function FitBounds({ bookings }: { bookings: BookingWithCoords[] }) {
   useEffect(() => {
     if (bookings.length > 0) {
       const bounds: [number, number][] = [];
-      let hasValidCoords = false;
-
       bookings.forEach(b => {
-        if (b.pickup_lat && b.pickup_lng) {
-          bounds.push([b.pickup_lat, b.pickup_lng]);
-          hasValidCoords = true;
-        }
-        if (b.dest_lat && b.dest_lng) {
-          bounds.push([b.dest_lat, b.dest_lng]);
-          hasValidCoords = true;
-        }
+        if (b.pickup_lat && b.pickup_lng) bounds.push([b.pickup_lat, b.pickup_lng]);
+        if (b.dest_lat && b.dest_lng) bounds.push([b.dest_lat, b.dest_lng]);
       });
-
-      if (hasValidCoords && bounds.length > 0) {
+      if (bounds.length > 0) {
         map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [50, 50] });
       }
     }
@@ -71,9 +62,7 @@ function FitBounds({ bookings }: { bookings: BookingWithCoords[] }) {
 export default function BookingMap() {
   const [bookings, setBookings] = useState<BookingWithCoords[]>([]);
   const [loading, setLoading] = useState(true);
-  const [geocodingBooking, setGeocodingBooking] = useState<number | null>(null);
   const [error, setError] = useState<string>('');
-  const [showWithoutCoords, setShowWithoutCoords] = useState(false);
 
   const formatBookingId = (id: number) => 'BRN' + String(id).padStart(5, '0');
   const formatTime = (time: string) => time.slice(0, -3);
@@ -92,6 +81,8 @@ export default function BookingMap() {
       const { data, error: fetchError } = await supabase
         .from('bookings')
         .select('*')
+        .neq('status', 'completed')
+        .not('pickup_latitude', 'is', null)
         .order('pickup_date', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -112,68 +103,6 @@ export default function BookingMap() {
     }
   };
 
-  const geocodeAddress = async (address: string): Promise<{ lat: number; lng: number } | null> => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycode=nz`
-      );
-      const data = await response.json();
-
-      if (data && data.length > 0) {
-        return {
-          lat: parseFloat(data[0].lat),
-          lng: parseFloat(data[0].lon),
-        };
-      }
-    } catch (err) {
-      console.error('Geocoding error:', err);
-    }
-    return null;
-  };
-
-  const addCoordinatesToBooking = async (booking: BookingWithCoords) => {
-    setGeocodingBooking(booking.booking_id);
-    setError('');
-
-    try {
-      // Build addresses from booking data
-      const pickupAddress = booking.pickup_suburb
-        ? `${booking.pickup_suburb}, Auckland, New Zealand`
-        : `${booking.street_number} ${booking.street_name}, Auckland, New Zealand`;
-
-      const destAddress = `${booking.destination_suburb}, Auckland, New Zealand`;
-
-      const [pickupCoords, destCoords] = await Promise.all([
-        geocodeAddress(pickupAddress),
-        geocodeAddress(destAddress),
-      ]);
-
-      if (pickupCoords || destCoords) {
-        const { error: updateError } = await supabase
-          .from('bookings')
-          .update({
-            pickup_latitude: pickupCoords?.lat || null,
-            pickup_longitude: pickupCoords?.lng || null,
-            destination_latitude: destCoords?.lat || null,
-            destination_longitude: destCoords?.lng || null,
-          })
-          .eq('booking_id', booking.booking_id);
-
-        if (updateError) throw updateError;
-        await fetchBookings();
-      } else {
-        setError('Unable to geocode addresses. Try more specific location names.');
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add coordinates');
-    } finally {
-      setGeocodingBooking(null);
-    }
-  };
-
-  const bookingsWithCoords = bookings.filter(b => b.pickup_lat && b.pickup_lng);
-  const bookingsWithoutCoords = bookings.filter(b => !b.pickup_lat || !b.pickup_lng);
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -188,7 +117,7 @@ export default function BookingMap() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Navigation className="w-6 h-6 text-amber-500" />
-            Booking Locations Map
+            Active Booking Locations
           </h3>
           <button
             onClick={fetchBookings}
@@ -201,66 +130,24 @@ export default function BookingMap() {
 
         {error && (
           <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-500" />
+            <MapPin className="w-5 h-5 text-red-500" />
             <p className="text-red-800">{error}</p>
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-            <p className="text-2xl font-bold text-amber-800">{bookings.length}</p>
-            <p className="text-sm text-amber-600">Total Bookings</p>
-          </div>
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <p className="text-2xl font-bold text-green-800">{bookingsWithCoords.length}</p>
-            <p className="text-sm text-green-600">With Coordinates</p>
+            <p className="text-2xl font-bold text-green-800">{bookings.filter(b => b.status === 'unassigned').length}</p>
+            <p className="text-sm text-green-600">Unassigned</p>
           </div>
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-2xl font-bold text-orange-800">{bookingsWithoutCoords.length}</p>
-            <p className="text-sm text-orange-600">Need Geocoding</p>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-2xl font-bold text-amber-800">{bookings.filter(b => b.status === 'assigned').length}</p>
+            <p className="text-sm text-amber-600">Assigned</p>
           </div>
         </div>
 
-        {bookingsWithoutCoords.length > 0 && (
-          <button
-            onClick={() => setShowWithoutCoords(!showWithoutCoords)}
-            className="mb-4 text-amber-600 hover:text-amber-700 font-semibold flex items-center gap-2"
-          >
-            {showWithoutCoords ? 'Hide' : 'Show'} {bookingsWithoutCoords.length} bookings without coordinates
-          </button>
-        )}
-
-        {showWithoutCoords && bookingsWithoutCoords.length > 0 && (
-          <div className="mb-6 bg-orange-50 border border-orange-200 rounded-lg p-4">
-            <p className="text-sm text-gray-700 mb-3">Click "Geocode" to fetch coordinates:</p>
-            <div className="max-h-48 overflow-y-auto space-y-2">
-              {bookingsWithoutCoords.slice(0, 20).map(booking => (
-                <div
-                  key={booking.id}
-                  className="flex items-center justify-between bg-white p-3 rounded border border-gray-200"
-                >
-                  <div>
-                    <p className="font-bold text-gray-900">{formatBookingId(booking.booking_id)}</p>
-                    <p className="text-sm text-gray-600">
-                      {booking.pickup_suburb || `${booking.street_number} ${booking.street_name}`} → {booking.destination_suburb}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => addCoordinatesToBooking(booking)}
-                    disabled={geocodingBooking === booking.booking_id}
-                    className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 text-sm flex items-center gap-2"
-                  >
-                    {geocodingBooking === booking.booking_id && <Loader className="w-4 h-4 animate-spin" />}
-                    Geocode
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="h-[600px] rounded-lg overflow-hidden border-2 border-gray-200">
-          {bookingsWithCoords.length > 0 ? (
+          {bookings.length > 0 ? (
             <MapContainer
               center={[-36.8485, 174.7633]}
               zoom={12}
@@ -271,9 +158,9 @@ export default function BookingMap() {
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
-              <FitBounds bookings={bookingsWithCoords} />
+              <FitBounds bookings={bookings} />
 
-              {bookingsWithCoords.map(booking => (
+              {bookings.map(booking => (
                 <div key={booking.id}>
                   {booking.pickup_lat && booking.pickup_lng && (
                     <Marker
@@ -282,9 +169,9 @@ export default function BookingMap() {
                     >
                       <Popup>
                         <div className="p-2 min-w-[200px]">
-                          <p className="font-bold text-green-700 text-lg">Pickup</p>
-                          <p className="text-sm font-semibold text-gray-900">{formatBookingId(booking.booking_id)}</p>
-                          <p className="text-sm text-gray-600">{booking.customer_name}</p>
+                          <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(booking.booking_id)}</p>
+                          <p className="font-bold text-green-700 text-sm">Pickup</p>
+                          <p className="text-sm text-gray-700 font-semibold">{booking.customer_name}</p>
                           <div className="border-t border-gray-200 mt-2 pt-2">
                             <p className="text-sm text-gray-700">
                               {booking.street_number} {booking.street_name}
@@ -317,8 +204,8 @@ export default function BookingMap() {
                     >
                       <Popup>
                         <div className="p-2 min-w-[200px]">
-                          <p className="font-bold text-red-700 text-lg">Destination</p>
-                          <p className="text-sm font-semibold text-gray-900">{formatBookingId(booking.booking_id)}</p>
+                          <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(booking.booking_id)}</p>
+                          <p className="font-bold text-red-700 text-sm">Destination</p>
                           <div className="border-t border-gray-200 mt-2 pt-2">
                             <p className="text-sm text-gray-700">{booking.destination_suburb}</p>
                           </div>
@@ -341,8 +228,8 @@ export default function BookingMap() {
           ) : (
             <div className="flex flex-col items-center justify-center h-full bg-gray-50">
               <MapPin className="w-16 h-16 text-gray-300 mb-4" />
-              <p className="text-gray-600 text-lg">No bookings with coordinates yet</p>
-              <p className="text-sm text-gray-500 mt-1">Bookings with address selection will appear here</p>
+              <p className="text-gray-600 text-lg">No active bookings with coordinates</p>
+              <p className="text-sm text-gray-500 mt-1">Completed jobs are not shown on the map</p>
             </div>
           )}
         </div>
