@@ -24,6 +24,18 @@ const destinationIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+// Create label icon for displaying booking number above marker
+const createLabelIcon = (label: string) => {
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `<div style="position: relative;">
+      <div style="position: absolute; bottom: 42px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; color: #d97706; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${label}</div>
+    </div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+};
+
 interface BookingWithCoords extends Booking {
   pickup_lat: number | null;
   pickup_lng: number | null;
@@ -172,16 +184,13 @@ export default function DriverPage() {
 
       if (updateError) throw updateError;
 
-      // Update driver trip count
-      await supabase
-        .rpc('increment_driver_trips', { driver_id: selectedDriver.driver_id })
-        .catch(() => {
-          // Fallback if RPC doesn't exist
-          supabase
-            .from('drivers')
-            .update({ total_trips: selectedDriver.total_trips + 1 })
-            .eq('driver_id', selectedDriver.driver_id);
-        });
+      // Update driver trip count directly
+      const { error: tripError } = await supabase
+        .from('drivers')
+        .update({ total_trips: selectedDriver.total_trips + 1 })
+        .eq('driver_id', selectedDriver.driver_id);
+
+      if (tripError) console.error('Failed to update trip count:', tripError);
 
       await fetchJobs();
 
@@ -190,10 +199,18 @@ export default function DriverPage() {
         prev ? { ...prev, total_trips: prev.total_trips + 1 } : null
       );
 
-      // Check if all jobs completed
+      // Check if all jobs completed - set driver to available
       const remainingJobs = myJobs.filter(j => j.booking_id !== bookingId);
       if (remainingJobs.length === 0) {
-        await setDriverStatus('available');
+        const { error: statusError } = await supabase
+          .from('drivers')
+          .update({ status: 'available' })
+          .eq('driver_id', selectedDriver.driver_id);
+
+        if (!statusError) {
+          setSelectedDriver(prev => prev ? { ...prev, status: 'available' } : null);
+          await fetchDrivers();
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to complete job');
@@ -466,38 +483,50 @@ export default function DriverPage() {
                   return (
                     <div key={job.id}>
                       {job.pickup_lat && job.pickup_lng && (
-                        <Marker position={[job.pickup_lat, job.pickup_lng]} icon={pickupIcon}>
-                          <Popup>
-                            <div className="p-2">
-                              <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(job.booking_id)}</p>
-                              <p className={`font-bold text-sm ${isMine ? 'text-amber-600' : 'text-green-700'}`}>
-                                {isMine ? 'YOUR JOB - PICKUP' : 'PICKUP'}
-                              </p>
-                              <p className="text-sm font-semibold">{job.customer_name}</p>
-                              <p className="text-sm text-gray-600">{job.pickup_suburb}</p>
-                              <p className="text-xs text-gray-500 mt-1">{formatTime(job.pickup_time)} {formatDate(job.pickup_date)}</p>
-                              {job.status === 'unassigned' && (
-                                <button
-                                  onClick={() => assignJob(job.booking_id)}
-                                  className="mt-2 w-full px-3 py-1 bg-blue-500 text-white text-sm rounded"
-                                >
-                                  Accept
-                                </button>
-                              )}
-                            </div>
-                          </Popup>
-                        </Marker>
+                        <>
+                          <Marker
+                            position={[job.pickup_lat, job.pickup_lng]}
+                            icon={createLabelIcon(formatBookingId(job.booking_id))}
+                          />
+                          <Marker position={[job.pickup_lat, job.pickup_lng]} icon={pickupIcon}>
+                            <Popup>
+                              <div className="p-2">
+                                <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(job.booking_id)}</p>
+                                <p className={`font-bold text-sm ${isMine ? 'text-amber-600' : 'text-green-700'}`}>
+                                  {isMine ? 'YOUR JOB - PICKUP' : 'PICKUP'}
+                                </p>
+                                <p className="text-sm font-semibold">{job.customer_name}</p>
+                                <p className="text-sm text-gray-600">{job.pickup_suburb}</p>
+                                <p className="text-xs text-gray-500 mt-1">{formatTime(job.pickup_time)} {formatDate(job.pickup_date)}</p>
+                                {job.status === 'unassigned' && (
+                                  <button
+                                    onClick={() => assignJob(job.booking_id)}
+                                    className="mt-2 w-full px-3 py-1 bg-blue-500 text-white text-sm rounded"
+                                  >
+                                    Accept
+                                  </button>
+                                )}
+                              </div>
+                            </Popup>
+                          </Marker>
+                        </>
                       )}
                       {job.dest_lat && job.dest_lng && (
-                        <Marker position={[job.dest_lat, job.dest_lng]} icon={destinationIcon}>
-                          <Popup>
-                            <div className="p-2">
-                              <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(job.booking_id)}</p>
-                              <p className="font-bold text-red-700 text-sm">DESTINATION</p>
-                              <p className="text-sm text-gray-600">{job.destination_suburb}</p>
-                            </div>
-                          </Popup>
-                        </Marker>
+                        <>
+                          <Marker
+                            position={[job.dest_lat, job.dest_lng]}
+                            icon={createLabelIcon(formatBookingId(job.booking_id))}
+                          />
+                          <Marker position={[job.dest_lat, job.dest_lng]} icon={destinationIcon}>
+                            <Popup>
+                              <div className="p-2">
+                                <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(job.booking_id)}</p>
+                                <p className="font-bold text-red-700 text-sm">DESTINATION</p>
+                                <p className="text-sm text-gray-600">{job.destination_suburb}</p>
+                              </div>
+                            </Popup>
+                          </Marker>
+                        </>
                       )}
                     </div>
                   );

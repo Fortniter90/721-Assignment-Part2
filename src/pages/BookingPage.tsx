@@ -152,6 +152,11 @@ export default function BookingPage() {
       const pickupSuburb = pickupParts[1] || pickupParts[2] || 'Auckland';
       const destSuburb = destParts[1] || destParts[2] || 'Auckland';
 
+      // Get destination street number and name
+      const destStreetMatch = destParts[0].match(/^(\d+)\s+(.+)$/);
+      const destStreetNumber = destStreetMatch ? destStreetMatch[1] : '';
+      const destStreetName = destStreetMatch ? destStreetMatch[2] : destParts[0];
+
       const { data, error: insertError } = await supabase
         .from('bookings')
         .insert([
@@ -162,6 +167,8 @@ export default function BookingPage() {
             street_name: streetName,
             pickup_suburb: pickupSuburb,
             destination_suburb: destSuburb,
+            destination_street_number: destStreetNumber,
+            destination_street_name: destStreetName,
             pickup_date: formData.date,
             pickup_time: formData.time,
             status: 'unassigned',

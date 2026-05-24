@@ -32,6 +32,18 @@ const destinationIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+// Create label icon for displaying booking number above marker
+const createLabelIcon = (label: string) => {
+  return L.divIcon({
+    className: 'custom-div-icon',
+    html: `<div style="position: relative;">
+      <div style="position: absolute; bottom: 42px; left: 50%; transform: translateX(-50%); white-space: nowrap; background: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 11px; color: #d97706; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${label}</div>
+    </div>`,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+};
+
 interface BookingWithCoords extends Booking {
   pickup_lat: number | null;
   pickup_lng: number | null;
@@ -163,64 +175,76 @@ export default function BookingMap() {
               {bookings.map(booking => (
                 <div key={booking.id}>
                   {booking.pickup_lat && booking.pickup_lng && (
-                    <Marker
-                      position={[booking.pickup_lat, booking.pickup_lng]}
-                      icon={pickupIcon}
-                    >
-                      <Popup>
-                        <div className="p-2 min-w-[200px]">
-                          <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(booking.booking_id)}</p>
-                          <p className="font-bold text-green-700 text-sm">Pickup</p>
-                          <p className="text-sm text-gray-700 font-semibold">{booking.customer_name}</p>
-                          <div className="border-t border-gray-200 mt-2 pt-2">
-                            <p className="text-sm text-gray-700">
-                              {booking.street_number} {booking.street_name}
+                    <>
+                      <Marker
+                        position={[booking.pickup_lat, booking.pickup_lng]}
+                        icon={createLabelIcon(formatBookingId(booking.booking_id))}
+                      />
+                      <Marker
+                        position={[booking.pickup_lat, booking.pickup_lng]}
+                        icon={pickupIcon}
+                      >
+                        <Popup>
+                          <div className="p-2 min-w-[200px]">
+                            <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(booking.booking_id)}</p>
+                            <p className="font-bold text-green-700 text-sm">Pickup</p>
+                            <p className="text-sm text-gray-700 font-semibold">{booking.customer_name}</p>
+                            <div className="border-t border-gray-200 mt-2 pt-2">
+                              <p className="text-sm text-gray-700">
+                                {booking.street_number} {booking.street_name}
+                              </p>
+                              {booking.pickup_suburb && (
+                                <p className="text-sm text-gray-700">{booking.pickup_suburb}</p>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">
+                              {formatTime(booking.pickup_time)} {formatDate(booking.pickup_date)}
                             </p>
-                            {booking.pickup_suburb && (
-                              <p className="text-sm text-gray-700">{booking.pickup_suburb}</p>
-                            )}
+                            <p className="text-xs mt-1">
+                              <span className={`px-2 py-0.5 rounded text-xs ${
+                                booking.status === 'assigned'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {booking.status}
+                              </span>
+                            </p>
                           </div>
-                          <p className="text-xs text-gray-500 mt-2">
-                            {formatTime(booking.pickup_time)} {formatDate(booking.pickup_date)}
-                          </p>
-                          <p className="text-xs mt-1">
-                            <span className={`px-2 py-0.5 rounded text-xs ${
-                              booking.status === 'assigned'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {booking.status}
-                            </span>
-                          </p>
-                        </div>
-                      </Popup>
-                    </Marker>
+                        </Popup>
+                      </Marker>
+                    </>
                   )}
 
                   {booking.dest_lat && booking.dest_lng && (
-                    <Marker
-                      position={[booking.dest_lat, booking.dest_lng]}
-                      icon={destinationIcon}
-                    >
-                      <Popup>
-                        <div className="p-2 min-w-[200px]">
-                          <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(booking.booking_id)}</p>
-                          <p className="font-bold text-red-700 text-sm">Destination</p>
-                          <div className="border-t border-gray-200 mt-2 pt-2">
-                            <p className="text-sm text-gray-700">{booking.destination_suburb}</p>
+                    <>
+                      <Marker
+                        position={[booking.dest_lat, booking.dest_lng]}
+                        icon={createLabelIcon(formatBookingId(booking.booking_id))}
+                      />
+                      <Marker
+                        position={[booking.dest_lat, booking.dest_lng]}
+                        icon={destinationIcon}
+                      >
+                        <Popup>
+                          <div className="p-2 min-w-[200px]">
+                            <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(booking.booking_id)}</p>
+                            <p className="font-bold text-red-700 text-sm">Destination</p>
+                            <div className="border-t border-gray-200 mt-2 pt-2">
+                              <p className="text-sm text-gray-700">{booking.destination_suburb}</p>
+                            </div>
+                            <p className="text-xs mt-1">
+                              <span className={`px-2 py-0.5 rounded text-xs ${
+                                booking.status === 'assigned'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {booking.status}
+                              </span>
+                            </p>
                           </div>
-                          <p className="text-xs mt-1">
-                            <span className={`px-2 py-0.5 rounded text-xs ${
-                              booking.status === 'assigned'
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-amber-100 text-amber-800'
-                            }`}>
-                              {booking.status}
-                            </span>
-                          </p>
-                        </div>
-                      </Popup>
-                    </Marker>
+                        </Popup>
+                      </Marker>
+                    </>
                   )}
                 </div>
               ))}
