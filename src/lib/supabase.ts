@@ -15,6 +15,12 @@ export interface Booking {
   street_name: string;
   pickup_suburb?: string;
   destination_suburb: string;
+  destination_street_number?: string;
+  destination_street_name?: string;
+  pickup_latitude?: number;
+  pickup_longitude?: number;
+  destination_latitude?: number;
+  destination_longitude?: number;
   pickup_date: string;
   pickup_time: string;
   status: 'unassigned' | 'assigned';
