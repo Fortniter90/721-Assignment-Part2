@@ -3,6 +3,7 @@ import { Car } from 'lucide-react';
 import BookingPage from './pages/BookingPage';
 import AdminPage from './pages/AdminPage';
 import DriverPage from './pages/DriverPage';
+import QueryPage from './pages/QueryPage';
 
 function App() {
   return (
@@ -18,6 +19,9 @@ function App() {
               <Link to="/" className="text-gray-300 hover:text-amber-400 font-medium transition-colors">
                 Book a Cab
               </Link>
+              <Link to="/track" className="text-gray-300 hover:text-amber-400 font-medium transition-colors">
+                Track Booking
+              </Link>
               <Link to="/driver" className="text-gray-300 hover:text-amber-400 font-medium transition-colors">
                 Driver Portal
               </Link>
@@ -30,6 +34,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<BookingPage />} />
+          <Route path="/track" element={<QueryPage />} />
           <Route path="/driver" element={<DriverPage />} />
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
