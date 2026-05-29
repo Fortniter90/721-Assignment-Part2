@@ -215,7 +215,6 @@ export default function AdminPage() {
                           <td className="px-6 py-4">{booking.customer_phone}</td>
                           <td className="px-6 py-4">
                             {booking.street_number} {booking.street_name}
-                            {booking.pickup_suburb && `, ${booking.pickup_suburb}`}
                           </td>
                           <td className="px-6 py-4">
                             {booking.destination_street_number} {booking.destination_street_name}
