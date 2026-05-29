@@ -409,7 +409,7 @@ export default function DriverPage() {
                     </div>
                     <div className="text-sm text-gray-600 space-y-1">
                       <p><MapPin className="w-4 h-4 inline text-green-500" /> {job.pickup_suburb}</p>
-                      <p><Navigation className="w-4 h-4 inline text-red-500" /> {job.destination_suburb}</p>
+                      <p><Navigation className="w-4 h-4 inline text-red-500" /> {job.destination_street_number} {job.destination_street_name}</p>
                       <p><Clock className="w-4 h-4 inline text-gray-400" /> {formatTime(job.pickup_time)} {formatDate(job.pickup_date)}</p>
                     </div>
                     <button
@@ -522,7 +522,7 @@ export default function DriverPage() {
                               <div className="p-2">
                                 <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(job.booking_id)}</p>
                                 <p className="font-bold text-red-700 text-sm">DESTINATION</p>
-                                <p className="text-sm text-gray-600">{job.destination_suburb}</p>
+                                <p className="text-sm text-gray-600">{job.destination_street_number} {job.destination_street_name}</p>
                               </div>
                             </Popup>
                           </Marker>

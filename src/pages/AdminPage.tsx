@@ -217,7 +217,10 @@ export default function AdminPage() {
                             {booking.street_number} {booking.street_name}
                             {booking.pickup_suburb && `, ${booking.pickup_suburb}`}
                           </td>
-                          <td className="px-6 py-4">{booking.destination_suburb}</td>
+                          <td className="px-6 py-4">
+                            {booking.destination_street_number} {booking.destination_street_name}
+                            {booking.destination_suburb && `, ${booking.destination_suburb}`}
+                          </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4 text-amber-500" />
