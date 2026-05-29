@@ -218,9 +218,6 @@ export default function QueryPage() {
                       <p className="font-semibold text-gray-900">
                         {booking.street_number} {booking.street_name}
                       </p>
-                      {booking.pickup_suburb && (
-                        <p className="text-gray-600">{booking.pickup_suburb}</p>
-                      )}
                     </div>
                   </div>
 
@@ -231,7 +228,6 @@ export default function QueryPage() {
                       <p className="font-semibold text-gray-900">
                         {booking.destination_street_number} {booking.destination_street_name}
                       </p>
-                      <p className="text-gray-600">{booking.destination_suburb}</p>
                     </div>
                   </div>
                 </div>

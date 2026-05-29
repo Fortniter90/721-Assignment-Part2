@@ -231,9 +231,6 @@ export default function BookingMap() {
                             <p className="font-bold text-red-700 text-sm">Destination</p>
                             <div className="border-t border-gray-200 mt-2 pt-2">
                               <p className="text-sm text-gray-700">{booking.destination_street_number} {booking.destination_street_name}</p>
-                              {booking.destination_suburb && (
-                                <p className="text-sm text-gray-700">{booking.destination_suburb}</p>
-                              )}
                             </div>
                             <p className="text-xs mt-1">
                               <span className={`px-2 py-0.5 rounded text-xs ${

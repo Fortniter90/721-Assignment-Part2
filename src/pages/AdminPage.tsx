@@ -219,7 +219,6 @@ export default function AdminPage() {
                           </td>
                           <td className="px-6 py-4">
                             {booking.destination_street_number} {booking.destination_street_name}
-                            {booking.destination_suburb && `, ${booking.destination_suburb}`}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-1">
