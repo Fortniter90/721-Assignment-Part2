@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, type Booking, type Driver } from '../lib/supabase';
-import { Search, CheckCircle, AlertCircle, Loader, Clock, User, MapPin, Users, Table as Tab } from 'lucide-react';
+import { Search, CheckCircle, AlertCircle, Loader, Clock, User, MapPin, Users, Table as Tab, AlertTriangle } from 'lucide-react';
 import DriverManagement from '../components/DriverManagement';
 import BookingMap from '../components/BookingMap';
 
@@ -49,7 +49,29 @@ export default function AdminPage() {
       const { data, error: queryError } = await query;
 
       if (queryError) throw queryError;
-      setBookings(data || []);
+
+      // Sort bookings: urgent unassigned first, then by date/time
+      const sortedData = (data || []).sort((a, b) => {
+        const now = new Date();
+        const twoHours = 2 * 60 * 60 * 1000;
+
+        const aDateTime = new Date(`${a.pickup_date}T${a.pickup_time}`);
+        const bDateTime = new Date(`${b.pickup_date}T${b.pickup_time}`);
+
+        const aUrgent = a.status === 'unassigned' && (aDateTime.getTime() - now.getTime()) <= twoHours;
+        const bUrgent = b.status === 'unassigned' && (bDateTime.getTime() - now.getTime()) <= twoHours;
+
+        // Urgent bookings first
+        if (aUrgent && !bUrgent) return -1;
+        if (!aUrgent && bUrgent) return 1;
+
+        // Then by date and time
+        if (aDateTime < bDateTime) return -1;
+        if (aDateTime > bDateTime) return 1;
+        return 0;
+      });
+
+      setBookings(sortedData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to search bookings');
       setBookings([]);
@@ -203,13 +225,26 @@ export default function AdminPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
-                      {bookings.map((booking, idx) => (
-                        <tr
-                          key={booking.id}
-                          className={idx % 2 === 0 ? 'bg-white hover:bg-amber-50' : 'bg-gray-50 hover:bg-amber-100'}
-                        >
+                      {bookings.map((booking, idx) => {
+                        const now = new Date();
+                        const pickupDateTime = new Date(`${booking.pickup_date}T${booking.pickup_time}`);
+                        const hoursUntilPickup = (pickupDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+                        const isUrgent = booking.status === 'unassigned' && hoursUntilPickup <= 2 && hoursUntilPickup > 0;
+
+                        return (
+                          <tr
+                            key={booking.id}
+                            className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${
+                              isUrgent ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-amber-50'
+                            } transition-colors`}
+                          >
                           <td className="px-6 py-4 font-bold text-amber-600">
-                            {formatBookingId(booking.booking_id)}
+                            <div className="flex items-center gap-2">
+                              {formatBookingId(booking.booking_id)}
+                              {isUrgent && (
+                                <AlertTriangle className="w-5 h-5 text-red-500 animate-pulse" />
+                              )}
+                            </div>
                           </td>
                           <td className="px-6 py-4 font-semibold">{booking.customer_name}</td>
                           <td className="px-6 py-4">{booking.customer_phone}</td>
@@ -279,7 +314,8 @@ export default function AdminPage() {
                             )}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
