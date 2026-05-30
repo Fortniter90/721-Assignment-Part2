@@ -10,6 +10,7 @@ interface BookingDetails extends Booking {
   vehicle_year?: number;
   vehicle_color?: string;
   vehicle_plate?: string;
+  status: 'unassigned' | 'assigned' | 'in_transit' | 'completed';
 }
 
 export default function QueryPage() {
@@ -151,10 +152,11 @@ export default function QueryPage() {
                       <p className="text-sm text-gray-600 mb-1">Booking Status</p>
                       <p className={`text-2xl font-bold capitalize ${
                         booking.status === 'completed' ? 'text-green-800' :
+                        booking.status === 'in_transit' ? 'text-purple-800' :
                         booking.status === 'assigned' ? 'text-blue-800' :
                         'text-amber-800'
                       }`}>
-                        {booking.status}
+                        {booking.status === 'in_transit' ? 'In Transit' : booking.status}
                       </p>
                     </div>
                   </div>

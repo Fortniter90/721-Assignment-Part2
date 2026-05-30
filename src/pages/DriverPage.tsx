@@ -128,9 +128,9 @@ export default function DriverPage() {
         b => b.status === 'unassigned' || b.driver_id === selectedDriver.driver_id
       );
 
-      // My active jobs
+      // My active jobs (including in_transit)
       const mine = bookingsWithCoords.filter(
-        b => b.driver_id === selectedDriver.driver_id && b.status === 'assigned'
+        b => b.driver_id === selectedDriver.driver_id && (b.status === 'assigned' || b.status === 'in_transit')
       );
 
       setAvailableJobs(available);
@@ -170,6 +170,23 @@ export default function DriverPage() {
       setSelectedDriver(prev => prev ? { ...prev, status: 'busy' } : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign job');
+    }
+  };
+
+  const markPickedUp = async (bookingId: number) => {
+    if (!selectedDriver) return;
+
+    try {
+      const { error: updateError } = await supabase
+        .from('bookings')
+        .update({ status: 'in_transit' })
+        .eq('booking_id', bookingId);
+
+      if (updateError) throw updateError;
+
+      await fetchJobs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update status');
     }
   };
 
@@ -399,26 +416,47 @@ export default function DriverPage() {
               <h3 className="text-lg font-semibold text-amber-700 mb-3">My Assigned Jobs</h3>
               <div className="space-y-3">
                 {myJobs.map(job => (
-                  <div key={job.id} className="p-4 rounded-lg bg-amber-50 border-2 border-amber-300">
+                  <div key={job.id} className={`p-4 rounded-lg border-2 ${
+                    job.status === 'in_transit'
+                      ? 'bg-green-50 border-green-300'
+                      : 'bg-amber-50 border-amber-300'
+                  }`}>
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="font-bold text-gray-900">{formatBookingId(job.booking_id)}</p>
                         <p className="text-sm text-gray-700">{job.customer_name}</p>
                       </div>
-                      <span className="px-2 py-1 bg-amber-500 text-white text-xs font-semibold rounded">IN PROGRESS</span>
+                      <span className={`px-2 py-1 text-white text-xs font-semibold rounded ${
+                        job.status === 'in_transit'
+                          ? 'bg-green-500'
+                          : 'bg-amber-500'
+                      }`}>
+                        {job.status === 'in_transit' ? 'IN TRANSIT' : 'ASSIGNED'}
+                      </span>
                     </div>
                     <div className="text-sm text-gray-600 space-y-1">
-                      <p><MapPin className="w-4 h-4 inline text-green-500" /> {job.pickup_suburb}</p>
+                      <p><MapPin className="w-4 h-4 inline text-green-500" /> {job.street_number} {job.street_name}</p>
                       <p><Navigation className="w-4 h-4 inline text-red-500" /> {job.destination_street_number} {job.destination_street_name}</p>
                       <p><Clock className="w-4 h-4 inline text-gray-400" /> {formatTime(job.pickup_time)} {formatDate(job.pickup_date)}</p>
                     </div>
-                    <button
-                      onClick={() => completeJob(job.booking_id)}
-                      className="w-full mt-3 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      <CheckCircle className="w-5 h-5" />
-                      Complete Job
-                    </button>
+                    <div className="mt-3 space-y-2">
+                      {job.status === 'assigned' && (
+                        <button
+                          onClick={() => markPickedUp(job.booking_id)}
+                          className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                          <User className="w-5 h-5" />
+                          Customer Picked Up
+                        </button>
+                      )}
+                      <button
+                        onClick={() => completeJob(job.booking_id)}
+                        className="w-full py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <CheckCircle className="w-5 h-5" />
+                        Complete Job
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

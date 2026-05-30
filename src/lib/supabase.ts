@@ -23,7 +23,7 @@ export interface Booking {
   destination_longitude?: number;
   pickup_date: string;
   pickup_time: string;
-  status: 'unassigned' | 'assigned';
+  status: 'unassigned' | 'assigned' | 'in_transit';
   driver_id?: number;
   driver_assigned_at?: string;
   created_at: string;
