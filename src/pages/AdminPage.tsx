@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, type Booking, type Driver } from '../lib/supabase';
-import { Search, CheckCircle, AlertCircle, Loader, Clock, User, MapPin, Users, Table as Tab, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, CheckCircle, AlertCircle, Loader, Clock, User, MapPin, Users, AlertTriangle, X, Navigation } from 'lucide-react';
 import DriverManagement from '../components/DriverManagement';
 import BookingMap from '../components/BookingMap';
 
@@ -14,19 +14,8 @@ export default function AdminPage() {
   const [assignConfirmation, setAssignConfirmation] = useState<string>('');
   const [showDriverModal, setShowDriverModal] = useState<Booking | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
-  const [expandedAddresses, setExpandedAddresses] = useState<Set<number>>(new Set());
-
-  const toggleAddress = (bookingId: number) => {
-    setExpandedAddresses(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(bookingId)) {
-        newSet.delete(bookingId);
-      } else {
-        newSet.add(bookingId);
-      }
-      return newSet;
-    });
-  };
+  // Address popup: stores { label, address } or null
+  const [addressPopup, setAddressPopup] = useState<{ label: string; address: string } | null>(null);
 
   const formatBookingId = (id: number) => 'BRN' + String(id).padStart(5, '0');
   const formatDriverId = (id: number) => 'DRV' + String(id).padStart(5, '0');
@@ -42,9 +31,7 @@ export default function AdminPage() {
     setLoading(true);
 
     try {
-      let query = supabase
-        .from('bookings')
-        .select('*');
+      let query = supabase.from('bookings').select('*');
 
       const bookingRefRegex = /^BRN\d{5}$/;
 
@@ -60,25 +47,17 @@ export default function AdminPage() {
       }
 
       const { data, error: queryError } = await query;
-
       if (queryError) throw queryError;
 
-      // Sort bookings: urgent unassigned first, then by date/time
       const sortedData = (data || []).sort((a, b) => {
         const now = new Date();
         const twoHours = 2 * 60 * 60 * 1000;
-
         const aDateTime = new Date(`${a.pickup_date}T${a.pickup_time}`);
         const bDateTime = new Date(`${b.pickup_date}T${b.pickup_time}`);
-
         const aUrgent = a.status === 'unassigned' && (aDateTime.getTime() - now.getTime()) <= twoHours;
         const bUrgent = b.status === 'unassigned' && (bDateTime.getTime() - now.getTime()) <= twoHours;
-
-        // Urgent bookings first
         if (aUrgent && !bUrgent) return -1;
         if (!aUrgent && bUrgent) return 1;
-
-        // Then by date and time
         if (aDateTime < bDateTime) return -1;
         if (aDateTime > bDateTime) return 1;
         return 0;
@@ -133,6 +112,29 @@ export default function AdminPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to assign driver');
     }
+  };
+
+  // Helper: render an address cell with a "..." button popup if long
+  const AddressCell = ({ address, label }: { address: string | null; label: string }) => {
+    if (!address) return <span className="text-gray-400 italic text-xs">No address</span>;
+
+    const truncated = address.length > 30 ? address.substring(0, 30) + '…' : address;
+    const isLong = address.length > 30;
+
+    return (
+      <div className="flex items-center gap-1 min-w-0">
+        <span className="truncate text-sm">{truncated}</span>
+        {isLong && (
+          <button
+            onClick={() => setAddressPopup({ label, address })}
+            title="View full address"
+            className="flex-shrink-0 text-amber-600 hover:text-amber-800 text-xs font-bold bg-amber-50 hover:bg-amber-100 rounded px-1 py-0.5 transition-colors"
+          >
+            ···
+          </button>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -223,103 +225,78 @@ export default function AdminPage() {
 
             {bookings.length > 0 ? (
               <div className="bg-white rounded-lg shadow-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-slate-900 to-slate-800 text-white">
-                      <tr>
-                        <th className="px-6 py-4 text-left font-semibold">Booking</th>
-                        <th className="px-6 py-4 text-left font-semibold">Customer</th>
-                        <th className="px-6 py-4 text-left font-semibold">Phone</th>
-                        <th className="px-6 py-4 text-left font-semibold">Pickup</th>
-                        <th className="px-6 py-4 text-left font-semibold">Destination</th>
-                        <th className="px-6 py-4 text-left font-semibold">Date & Time</th>
-                        <th className="px-6 py-4 text-center font-semibold">Status</th>
-                        <th className="px-6 py-4 text-center font-semibold">Driver</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {bookings.map((booking, idx) => {
-                        const now = new Date();
-                        const pickupDateTime = new Date(`${booking.pickup_date}T${booking.pickup_time}`);
-                        const hoursUntilPickup = (pickupDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-                        const isUrgent = booking.status === 'unassigned' && hoursUntilPickup <= 2 && hoursUntilPickup > 0;
+                {/* No overflow-x-auto — table uses fixed layout fitting the container */}
+                <table className="w-full table-fixed">
+                  <colgroup>
+                    <col className="w-[10%]" />  {/* Booking */}
+                    <col className="w-[12%]" />  {/* Customer */}
+                    <col className="w-[11%]" />  {/* Phone */}
+                    <col className="w-[16%]" />  {/* Pickup */}
+                    <col className="w-[16%]" />  {/* Destination */}
+                    <col className="w-[13%]" />  {/* Date & Time */}
+                    <col className="w-[11%]" />  {/* Status */}
+                    <col className="w-[11%]" />  {/* Driver */}
+                  </colgroup>
+                  <thead className="bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+                    <tr>
+                      <th className="px-3 py-4 text-left text-sm font-semibold">Booking</th>
+                      <th className="px-3 py-4 text-left text-sm font-semibold">Customer</th>
+                      <th className="px-3 py-4 text-left text-sm font-semibold">Phone</th>
+                      <th className="px-3 py-4 text-left text-sm font-semibold">Pickup</th>
+                      <th className="px-3 py-4 text-left text-sm font-semibold">Destination</th>
+                      <th className="px-3 py-4 text-left text-sm font-semibold">Date & Time</th>
+                      <th className="px-3 py-4 text-center text-sm font-semibold">Status</th>
+                      <th className="px-3 py-4 text-center text-sm font-semibold">Driver</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {bookings.map((booking, idx) => {
+                      const now = new Date();
+                      const pickupDateTime = new Date(`${booking.pickup_date}T${booking.pickup_time}`);
+                      const hoursUntilPickup = (pickupDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+                      const isUrgent = booking.status === 'unassigned' && hoursUntilPickup <= 2 && hoursUntilPickup > 0;
 
-                        return (
-                          <tr
-                            key={booking.id}
-                            className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${
-                              isUrgent ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-amber-50'
-                            } transition-colors`}
-                          >
-                          <td className="px-6 py-4 font-bold text-amber-600">
-                            <div className="flex items-center gap-2">
-                              {formatBookingId(booking.booking_id)}
-                              {isUrgent && (
-                                <AlertTriangle className="w-5 h-5 text-red-500 animate-pulse" />
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 font-semibold">{booking.customer_name}</td>
-                          <td className="px-6 py-4">{booking.customer_phone}</td>
-                          <td className="px-6 py-4 max-w-xs">
-                            {booking.pickup_address ? (
-                              <div>
-                                <div className={`${expandedAddresses.has(booking.booking_id) ? '' : 'truncate'}`}>
-                                  {expandedAddresses.has(booking.booking_id)
-                                    ? booking.pickup_address
-                                    : booking.pickup_address.substring(0, 40) + (booking.pickup_address.length > 40 ? '...' : '')}
-                                </div>
-                                {booking.pickup_address.length > 40 && (
-                                  <button
-                                    onClick={() => toggleAddress(booking.booking_id)}
-                                    className="text-amber-600 hover:text-amber-700 text-xs flex items-center gap-1 mt-1"
-                                  >
-                                    {expandedAddresses.has(booking.booking_id) ? (
-                                      <>Show less <ChevronUp className="w-3 h-3" /></>
-                                    ) : (
-                                      <>Show more <ChevronDown className="w-3 h-3" /></>
-                                    )}
-                                  </button>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 italic">No address</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 max-w-xs">
-                            {booking.destination_address ? (
-                              <div>
-                                <div className={`${expandedAddresses.has(booking.booking_id + 10000) ? '' : 'truncate'}`}>
-                                  {expandedAddresses.has(booking.booking_id + 10000)
-                                    ? booking.destination_address
-                                    : booking.destination_address.substring(0, 40) + (booking.destination_address.length > 40 ? '...' : '')}
-                                </div>
-                                {booking.destination_address.length > 40 && (
-                                  <button
-                                    onClick={() => toggleAddress(booking.booking_id + 10000)}
-                                    className="text-amber-600 hover:text-amber-700 text-xs flex items-center gap-1 mt-1"
-                                  >
-                                    {expandedAddresses.has(booking.booking_id + 10000) ? (
-                                      <>Show less <ChevronUp className="w-3 h-3" /></>
-                                    ) : (
-                                      <>Show more <ChevronDown className="w-3 h-3" /></>
-                                    )}
-                                  </button>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 italic">No address</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4">
+                      return (
+                        <tr
+                          key={booking.id}
+                          className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} ${
+                            isUrgent ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-amber-50'
+                          } transition-colors`}
+                        >
+                          <td className="px-3 py-4">
                             <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4 text-amber-500" />
-                              {formatTime(booking.pickup_time)} {formatDate(booking.pickup_date)}
+                              <span className="font-bold text-amber-600 text-sm">{formatBookingId(booking.booking_id)}</span>
+                              {isUrgent && <AlertTriangle className="w-4 h-4 text-red-500 animate-pulse flex-shrink-0" />}
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-3 py-4">
+                            <span className="font-semibold text-sm truncate block">{booking.customer_name}</span>
+                          </td>
+                          <td className="px-3 py-4">
+                            <span className="text-sm">{booking.customer_phone}</span>
+                          </td>
+                          <td className="px-3 py-4 overflow-hidden">
+                            <AddressCell
+                              address={booking.pickup_address}
+                              label={`Pickup – ${formatBookingId(booking.booking_id)}`}
+                            />
+                          </td>
+                          <td className="px-3 py-4 overflow-hidden">
+                            <AddressCell
+                              address={booking.destination_address}
+                              label={`Destination – ${formatBookingId(booking.booking_id)}`}
+                            />
+                          </td>
+                          <td className="px-3 py-4">
+                            <div className="flex items-center gap-1 text-sm">
+                              <Clock className="w-3 h-3 text-amber-500 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{formatTime(booking.pickup_time)}</span>
+                              <span className="whitespace-nowrap text-gray-500">{formatDate(booking.pickup_date)}</span>
+                            </div>
+                          </td>
+                          <td className="px-3 py-4 text-center">
                             <span
-                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full font-semibold ${
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
                                 booking.status === 'completed'
                                   ? 'bg-gray-100 text-gray-800'
                                   : booking.status === 'in_transit'
@@ -330,52 +307,39 @@ export default function AdminPage() {
                               }`}
                             >
                               {booking.status === 'completed' ? (
-                                <>
-                                  <CheckCircle className="w-4 h-4" />
-                                  Completed
-                                </>
+                                <><CheckCircle className="w-3 h-3" />Done</>
                               ) : booking.status === 'in_transit' ? (
-                                <>
-                                  <Navigation className="w-4 h-4" />
-                                  In Transit
-                                </>
+                                <><Navigation className="w-3 h-3" />Transit</>
                               ) : booking.status === 'assigned' ? (
-                                <>
-                                  <CheckCircle className="w-4 h-4" />
-                                  Assigned
-                                </>
+                                <><CheckCircle className="w-3 h-3" />Assigned</>
                               ) : (
-                                <>
-                                  <Clock className="w-4 h-4" />
-                                  Pending
-                                </>
+                                <><Clock className="w-3 h-3" />Pending</>
                               )}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-center">
+                          <td className="px-3 py-4 text-center">
                             {booking.status === 'completed' ? (
-                              <span className="text-gray-400 italic">Completed</span>
+                              <span className="text-gray-400 italic text-xs">Done</span>
                             ) : booking.driver_id ? (
-                              <div className="flex items-center justify-center gap-2">
-                                <User className="w-4 h-4 text-gray-600" />
-                                <span className="font-semibold">{formatDriverId(booking.driver_id)}</span>
+                              <div className="flex items-center justify-center gap-1">
+                                <User className="w-3 h-3 text-gray-600" />
+                                <span className="font-semibold text-sm">{formatDriverId(booking.driver_id)}</span>
                               </div>
                             ) : (
                               <button
                                 onClick={() => setShowDriverModal(booking)}
-                                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-1 mx-auto"
+                                className="px-2 py-1.5 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-colors flex items-center gap-1 mx-auto text-xs"
                               >
-                                <User className="w-4 h-4" />
-                                Assign Driver
+                                <User className="w-3 h-3" />
+                                Assign
                               </button>
                             )}
                           </td>
                         </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ) : !loading && !error ? (
               <div className="bg-white rounded-lg shadow-xl p-12 text-center">
@@ -384,6 +348,29 @@ export default function AdminPage() {
               </div>
             ) : null}
 
+            {/* ── Address popup modal ── */}
+            {addressPopup && (
+              <div
+                className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4"
+                onClick={() => setAddressPopup(null)}
+              >
+                <div
+                  className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 relative"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button
+                    onClick={() => setAddressPopup(null)}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                  <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-1">{addressPopup.label}</p>
+                  <p className="text-gray-800 text-sm leading-relaxed">{addressPopup.address}</p>
+                </div>
+              </div>
+            )}
+
+            {/* ── Assign Driver modal ── */}
             {showDriverModal && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-lg shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
@@ -468,13 +455,8 @@ export default function AdminPage() {
           </>
         )}
 
-        {activeTab === 'drivers' && (
-          <DriverManagement />
-        )}
-
-        {activeTab === 'map' && (
-          <BookingMap />
-        )}
+        {activeTab === 'drivers' && <DriverManagement />}
+        {activeTab === 'map' && <BookingMap />}
       </div>
     </div>
   );
