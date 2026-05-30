@@ -14,7 +14,9 @@ export interface Booking {
   street_number: string;
   street_name: string;
   pickup_suburb?: string;
+  pickup_address?: string;
   destination_suburb: string;
+  destination_address?: string;
   destination_street_number?: string;
   destination_street_name?: string;
   pickup_latitude?: number;
@@ -23,7 +25,7 @@ export interface Booking {
   destination_longitude?: number;
   pickup_date: string;
   pickup_time: string;
-  status: 'unassigned' | 'assigned' | 'in_transit';
+  status: 'unassigned' | 'assigned' | 'in_transit' | 'completed';
   driver_id?: number;
   driver_assigned_at?: string;
   created_at: string;

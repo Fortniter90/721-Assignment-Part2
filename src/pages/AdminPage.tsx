@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase, type Booking, type Driver } from '../lib/supabase';
-import { Search, CheckCircle, AlertCircle, Loader, Clock, User, MapPin, Users, Table as Tab, AlertTriangle } from 'lucide-react';
+import { Search, CheckCircle, AlertCircle, Loader, Clock, User, MapPin, Users, Table as Tab, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
 import DriverManagement from '../components/DriverManagement';
 import BookingMap from '../components/BookingMap';
 
@@ -14,6 +14,19 @@ export default function AdminPage() {
   const [assignConfirmation, setAssignConfirmation] = useState<string>('');
   const [showDriverModal, setShowDriverModal] = useState<Booking | null>(null);
   const [selectedDriver, setSelectedDriver] = useState<number | null>(null);
+  const [expandedAddresses, setExpandedAddresses] = useState<Set<number>>(new Set());
+
+  const toggleAddress = (bookingId: number) => {
+    setExpandedAddresses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(bookingId)) {
+        newSet.delete(bookingId);
+      } else {
+        newSet.add(bookingId);
+      }
+      return newSet;
+    });
+  };
 
   const formatBookingId = (id: number) => 'BRN' + String(id).padStart(5, '0');
   const formatDriverId = (id: number) => 'DRV' + String(id).padStart(5, '0');
@@ -248,11 +261,55 @@ export default function AdminPage() {
                           </td>
                           <td className="px-6 py-4 font-semibold">{booking.customer_name}</td>
                           <td className="px-6 py-4">{booking.customer_phone}</td>
-                          <td className="px-6 py-4">
-                            {booking.street_number} {booking.street_name}
+                          <td className="px-6 py-4 max-w-xs">
+                            {booking.pickup_address ? (
+                              <div>
+                                <div className={`${expandedAddresses.has(booking.booking_id) ? '' : 'truncate'}`}>
+                                  {expandedAddresses.has(booking.booking_id)
+                                    ? booking.pickup_address
+                                    : booking.pickup_address.substring(0, 40) + (booking.pickup_address.length > 40 ? '...' : '')}
+                                </div>
+                                {booking.pickup_address.length > 40 && (
+                                  <button
+                                    onClick={() => toggleAddress(booking.booking_id)}
+                                    className="text-amber-600 hover:text-amber-700 text-xs flex items-center gap-1 mt-1"
+                                  >
+                                    {expandedAddresses.has(booking.booking_id) ? (
+                                      <>Show less <ChevronUp className="w-3 h-3" /></>
+                                    ) : (
+                                      <>Show more <ChevronDown className="w-3 h-3" /></>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">No address</span>
+                            )}
                           </td>
-                          <td className="px-6 py-4">
-                            {booking.destination_street_number} {booking.destination_street_name}
+                          <td className="px-6 py-4 max-w-xs">
+                            {booking.destination_address ? (
+                              <div>
+                                <div className={`${expandedAddresses.has(booking.booking_id + 10000) ? '' : 'truncate'}`}>
+                                  {expandedAddresses.has(booking.booking_id + 10000)
+                                    ? booking.destination_address
+                                    : booking.destination_address.substring(0, 40) + (booking.destination_address.length > 40 ? '...' : '')}
+                                </div>
+                                {booking.destination_address.length > 40 && (
+                                  <button
+                                    onClick={() => toggleAddress(booking.booking_id + 10000)}
+                                    className="text-amber-600 hover:text-amber-700 text-xs flex items-center gap-1 mt-1"
+                                  >
+                                    {expandedAddresses.has(booking.booking_id + 10000) ? (
+                                      <>Show less <ChevronUp className="w-3 h-3" /></>
+                                    ) : (
+                                      <>Show more <ChevronDown className="w-3 h-3" /></>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 italic">No address</span>
+                            )}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-1">
