@@ -435,8 +435,8 @@ export default function DriverPage() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-600 space-y-1">
-                      <p><MapPin className="w-4 h-4 inline text-green-500" /> {job.street_number} {job.street_name}</p>
-                      <p><Navigation className="w-4 h-4 inline text-red-500" /> {job.destination_street_number} {job.destination_street_name}</p>
+                      <p><MapPin className="w-4 h-4 inline text-green-500" /> {job.pickup_address}</p>
+                      <p><Navigation className="w-4 h-4 inline text-red-500" /> {job.destination_address}</p>
                       <p><Clock className="w-4 h-4 inline text-gray-400" /> {formatTime(job.pickup_time)} {formatDate(job.pickup_date)}</p>
                     </div>
                     <div className="mt-3 space-y-2">
@@ -485,8 +485,8 @@ export default function DriverPage() {
                     </button>
                   </div>
                   <div className="text-sm text-gray-600 space-y-1 mt-2 pt-2 border-t border-gray-200">
-                    <p><MapPin className="w-4 h-4 inline text-green-500" /> {job.pickup_suburb || `${job.street_number} ${job.street_name}`}</p>
-                    <p><Navigation className="w-4 h-4 inline text-red-500" /> {job.destination_suburb}</p>
+                    <p><MapPin className="w-4 h-4 inline text-green-500" /> {job.pickup_address}</p>
+                    <p><Navigation className="w-4 h-4 inline text-red-500" /> {job.destination_address}</p>
                     <p><Clock className="w-4 h-4 inline text-gray-400" /> {formatTime(job.pickup_time)} {formatDate(job.pickup_date)}</p>
                   </div>
                 </div>
@@ -534,7 +534,7 @@ export default function DriverPage() {
                                   {isMine ? 'YOUR JOB - PICKUP' : 'PICKUP'}
                                 </p>
                                 <p className="text-sm font-semibold">{job.customer_name}</p>
-                                <p className="text-sm text-gray-600">{job.pickup_suburb}</p>
+                                <p className="text-sm text-gray-600">{job.pickup_address}</p>
                                 <p className="text-xs text-gray-500 mt-1">{formatTime(job.pickup_time)} {formatDate(job.pickup_date)}</p>
                                 {job.status === 'unassigned' && (
                                   <button
@@ -560,7 +560,7 @@ export default function DriverPage() {
                               <div className="p-2">
                                 <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(job.booking_id)}</p>
                                 <p className="font-bold text-red-700 text-sm">DESTINATION</p>
-                                <p className="text-sm text-gray-600">{job.destination_street_number} {job.destination_street_name}</p>
+                                <p className="text-sm text-gray-600">{job.destination_address}</p>
                               </div>
                             </Popup>
                           </Marker>
