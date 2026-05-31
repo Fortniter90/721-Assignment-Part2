@@ -218,10 +218,7 @@ export default function QueryPage() {
                     <p className="text-sm font-semibold text-green-700 mb-2">Pickup Location</p>
                     <div className="bg-white rounded-lg p-4 border border-green-200">
                       <p className="font-semibold text-gray-900">
-                        {booking.pickup_address ||
-                          [booking.street_number, booking.street_name, booking.pickup_suburb]
-                            .filter(Boolean)
-                            .join(' ')}
+                        {booking.pickup_address}
                       </p>
                     </div>
                   </div>
@@ -231,10 +228,7 @@ export default function QueryPage() {
                     <p className="text-sm font-semibold text-red-700 mb-2">Destination</p>
                     <div className="bg-white rounded-lg p-4 border border-red-200">
                       <p className="font-semibold text-gray-900">
-                        {booking.destination_address ||
-                          [booking.destination_street_number, booking.destination_street_name, booking.destination_suburb]
-                            .filter(Boolean)
-                            .join(' ')}
+                        {booking.destination_address}
                       </p>
                     </div>
                   </div>
