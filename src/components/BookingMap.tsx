@@ -190,12 +190,7 @@ export default function BookingMap() {
                             <p className="font-bold text-green-700 text-sm">Pickup</p>
                             <p className="text-sm text-gray-700 font-semibold">{booking.customer_name}</p>
                             <div className="border-t border-gray-200 mt-2 pt-2">
-                              <p className="text-sm text-gray-700">
-                                {booking.street_number} {booking.street_name}
-                              </p>
-                              {booking.pickup_suburb && (
-                                <p className="text-sm text-gray-700">{booking.pickup_suburb}</p>
-                              )}
+                              <p className="text-sm text-gray-700">{booking.pickup_address}</p>
                             </div>
                             <p className="text-xs text-gray-500 mt-2">
                               {formatTime(booking.pickup_time)} {formatDate(booking.pickup_date)}
@@ -230,7 +225,7 @@ export default function BookingMap() {
                             <p className="text-xl font-bold text-amber-600 mb-1">{formatBookingId(booking.booking_id)}</p>
                             <p className="font-bold text-red-700 text-sm">Destination</p>
                             <div className="border-t border-gray-200 mt-2 pt-2">
-                              <p className="text-sm text-gray-700">{booking.destination_street_number} {booking.destination_street_name}</p>
+                              <p className="text-sm text-gray-700">{booking.destination_address}</p>
                             </div>
                             <p className="text-xs mt-1">
                               <span className={`px-2 py-0.5 rounded text-xs ${
