@@ -139,38 +139,14 @@ export default function BookingPage() {
     }
 
     try {
-      // Parse the address to extract components
-      const pickupParts = formData.pickup_address.split(',').map(s => s.trim());
-      const destParts = formData.destination_address.split(',').map(s => s.trim());
-
-      // Get street number and name from first part
-      const streetMatch = pickupParts[0].match(/^(\d+)\s+(.+)$/);
-      const streetNumber = streetMatch ? streetMatch[1] : '';
-      const streetName = streetMatch ? streetMatch[2] : pickupParts[0];
-
-      // Get suburb (usually second or third part)
-      const pickupSuburb = pickupParts[1] || pickupParts[2] || 'Auckland';
-      const destSuburb = destParts[1] || destParts[2] || 'Auckland';
-
-      // Get destination street number and name
-      const destStreetMatch = destParts[0].match(/^(\d+)\s+(.+)$/);
-      const destStreetNumber = destStreetMatch ? destStreetMatch[1] : '';
-      const destStreetName = destStreetMatch ? destStreetMatch[2] : destParts[0];
-
       const { data, error: insertError } = await supabase
         .from('bookings')
         .insert([
           {
             customer_name: formData.cname,
             customer_phone: formData.phone,
-            street_number: streetNumber,
-            street_name: streetName,
-            pickup_suburb: pickupSuburb,
             pickup_address: formData.pickup_address,
-            destination_suburb: destSuburb,
             destination_address: formData.destination_address,
-            destination_street_number: destStreetNumber,
-            destination_street_name: destStreetName,
             pickup_date: formData.date,
             pickup_time: formData.time,
             status: 'unassigned',
