@@ -10,15 +10,8 @@ export interface Booking {
   booking_id: number;
   customer_name: string;
   customer_phone: string;
-  unit_number?: string;
-  street_number: string;
-  street_name: string;
-  pickup_suburb?: string;
-  pickup_address?: string;
-  destination_suburb: string;
-  destination_address?: string;
-  destination_street_number?: string;
-  destination_street_name?: string;
+  pickup_address: string;
+  destination_address: string;
   pickup_latitude?: number;
   pickup_longitude?: number;
   destination_latitude?: number;
