@@ -218,7 +218,10 @@ export default function QueryPage() {
                     <p className="text-sm font-semibold text-green-700 mb-2">Pickup Location</p>
                     <div className="bg-white rounded-lg p-4 border border-green-200">
                       <p className="font-semibold text-gray-900">
-                        {booking.street_number} {booking.street_name}
+                        {booking.pickup_address ||
+                          [booking.street_number, booking.street_name, booking.pickup_suburb]
+                            .filter(Boolean)
+                            .join(' ')}
                       </p>
                     </div>
                   </div>
@@ -228,7 +231,10 @@ export default function QueryPage() {
                     <p className="text-sm font-semibold text-red-700 mb-2">Destination</p>
                     <div className="bg-white rounded-lg p-4 border border-red-200">
                       <p className="font-semibold text-gray-900">
-                        {booking.destination_street_number} {booking.destination_street_name}
+                        {booking.destination_address ||
+                          [booking.destination_street_number, booking.destination_street_name, booking.destination_suburb]
+                            .filter(Boolean)
+                            .join(' ')}
                       </p>
                     </div>
                   </div>
@@ -305,6 +311,29 @@ export default function QueryPage() {
                         <p className="text-sm text-gray-600">
                           {formatDate(booking.driver_assigned_at.split('T')[0])}
                         </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      booking.status === 'in_transit' || booking.status === 'completed' ? 'bg-green-500 text-white' : 'bg-gray-300'
+                    }`}>
+                      {booking.status === 'in_transit' || booking.status === 'completed' ? (
+                        <CheckCircle className="w-6 h-6" />
+                      ) : (
+                        <MapPin className="w-6 h-6 text-gray-500" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`font-semibold ${booking.status === 'in_transit' || booking.status === 'completed' ? 'text-gray-900' : 'text-gray-500'}`}>
+                        Pickup
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {formatDate(booking.pickup_date)} at {formatTime(booking.pickup_time)}
+                      </p>
+                      {(booking.status === 'in_transit' || booking.status === 'completed') && (
+                        <p className="text-xs text-green-600 mt-0.5 font-medium">Customer picked up</p>
                       )}
                     </div>
                   </div>
